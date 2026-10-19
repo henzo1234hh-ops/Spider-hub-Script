@@ -1,0 +1,377 @@
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+-- Remove versão anterior para não duplicar
+if CoreGui:FindFirstChild("SpiderHubGui") then
+    CoreGui.SpiderHubGui:Destroy()
+end
+
+-- Lista de itens
+local itensLista = {
+    "Red Key", "Blue Key", "Green Key", "Orange Key", "Yellow Key", "Purple Key",
+    "Ladder", "C4", "Wrench", "Battery", "Crowbar", "Spider Spray", "Rainbow Key"
+}
+
+-- Interface Principal
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SpiderHubGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function() screenGui.Parent = CoreGui end)
+if not screenGui.Parent then screenGui.Parent = localPlayer:WaitForChild("PlayerGui") end
+
+-- Botão Flutuante (MENU)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleMenu"
+toggleBtn.Size = UDim2.new(0, 65, 0, 30)
+toggleBtn.Position = UDim2.new(0, 15, 0, 60)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggleBtn.Text = "MENU"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextScaled = true
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Parent = screenGui
+
+local cornerToggle = Instance.new("UICorner")
+cornerToggle.CornerRadius = UDim.new(0, 8)
+cornerToggle.Parent = toggleBtn
+
+-- Janela Principal
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 220, 0, 330)
+mainFrame.Position = UDim2.new(0.5, -110, 0.4, -165)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = true
+mainFrame.Parent = screenGui
+
+local cornerMain = Instance.new("UICorner")
+cornerMain.CornerRadius = UDim.new(0, 10)
+cornerMain.Parent = mainFrame
+
+-- Barra Superior (Arrastável)
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleBar
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, -40, 1, 0)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.Text = "Spider Hub + Anti-Teia"
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.TextSize = 13
+titleText.Font = Enum.Font.SourceSansBold
+titleText.BackgroundTransparency = 1
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.BackgroundTransparency = 1
+closeBtn.Parent = titleBar
+
+-- Arrastar Janela
+local dragging, dragInput, dragStart, startPos
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
+toggleBtn.MouseButton1Click:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+
+-- Sistema de 3 Abas (ITENS / JOGADORES / UTIL)
+local tabFrame = Instance.new("Frame")
+tabFrame.Size = UDim2.new(1, -10, 0, 30)
+tabFrame.Position = UDim2.new(0, 5, 0, 40)
+tabFrame.BackgroundTransparency = 1
+tabFrame.Parent = mainFrame
+
+local btnItensTab = Instance.new("TextButton")
+btnItensTab.Size = UDim2.new(0.32, 0, 1, 0)
+btnItensTab.Position = UDim2.new(0, 0, 0, 0)
+btnItensTab.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+btnItensTab.Text = "ITENS"
+btnItensTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnItensTab.Font = Enum.Font.SourceSansBold
+btnItensTab.TextSize = 11
+btnItensTab.Parent = tabFrame
+local c1 = Instance.new("UICorner"); c1.CornerRadius = UDim.new(0, 5); c1.Parent = btnItensTab
+
+local btnPlayersTab = Instance.new("TextButton")
+btnPlayersTab.Size = UDim2.new(0.32, 0, 1, 0)
+btnPlayersTab.Position = UDim2.new(0.34, 0, 0, 0)
+btnPlayersTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+btnPlayersTab.Text = "PLAYERS"
+btnPlayersTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+btnPlayersTab.Font = Enum.Font.SourceSansBold
+btnPlayersTab.TextSize = 11
+btnPlayersTab.Parent = tabFrame
+local c2 = Instance.new("UICorner"); c2.CornerRadius = UDim.new(0, 5); c2.Parent = btnPlayersTab
+
+local btnUtilTab = Instance.new("TextButton")
+btnUtilTab.Size = UDim2.new(0.32, 0, 1, 0)
+btnUtilTab.Position = UDim2.new(0.68, 0, 0, 0)
+btnUtilTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+btnUtilTab.Text = "UTIL"
+btnUtilTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+btnUtilTab.Font = Enum.Font.SourceSansBold
+btnUtilTab.TextSize = 11
+btnUtilTab.Parent = tabFrame
+local c3 = Instance.new("UICorner"); c3.CornerRadius = UDim.new(0, 5); c3.Parent = btnUtilTab
+
+-- Containers de Conteúdo
+local scrollItens = Instance.new("ScrollingFrame")
+scrollItens.Size = UDim2.new(1, -10, 1, -80)
+scrollItens.Position = UDim2.new(0, 5, 0, 75)
+scrollItens.BackgroundTransparency = 1
+scrollItens.CanvasSize = UDim2.new(0, 0, 0, #itensLista * 35)
+scrollItens.ScrollBarThickness = 4
+scrollItens.Visible = true
+scrollItens.Parent = mainFrame
+local l1 = Instance.new("UIListLayout"); l1.Padding = UDim.new(0, 5); l1.Parent = scrollItens
+
+local scrollPlayers = Instance.new("ScrollingFrame")
+scrollPlayers.Size = UDim2.new(1, -10, 1, -80)
+scrollPlayers.Position = UDim2.new(0, 5, 0, 75)
+scrollPlayers.BackgroundTransparency = 1
+scrollPlayers.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollPlayers.ScrollBarThickness = 4
+scrollPlayers.Visible = false
+scrollPlayers.Parent = mainFrame
+local l2 = Instance.new("UIListLayout"); l2.Padding = UDim.new(0, 5); l2.Parent = scrollPlayers
+
+local frameUtil = Instance.new("Frame")
+frameUtil.Size = UDim2.new(1, -10, 1, -80)
+frameUtil.Position = UDim2.new(0, 5, 0, 75)
+frameUtil.BackgroundTransparency = 1
+frameUtil.Visible = false
+frameUtil.Parent = mainFrame
+local l3 = Instance.new("UIListLayout"); l3.Padding = UDim.new(0, 8); l3.Parent = frameUtil
+
+-- Troca de Abas
+btnItensTab.MouseButton1Click:Connect(function()
+    scrollItens.Visible = true; scrollPlayers.Visible = false; frameUtil.Visible = false
+    btnItensTab.BackgroundColor3 = Color3.fromRGB(50, 50, 70); btnItensTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btnPlayersTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45); btnPlayersTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btnUtilTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45); btnUtilTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+end)
+
+btnPlayersTab.MouseButton1Click:Connect(function()
+    scrollItens.Visible = false; scrollPlayers.Visible = true; frameUtil.Visible = false
+    btnPlayersTab.BackgroundColor3 = Color3.fromRGB(50, 50, 70); btnPlayersTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btnItensTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45); btnItensTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btnUtilTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45); btnUtilTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+end)
+
+btnUtilTab.MouseButton1Click:Connect(function()
+    scrollItens.Visible = false; scrollPlayers.Visible = false; frameUtil.Visible = true
+    btnUtilTab.BackgroundColor3 = Color3.fromRGB(50, 50, 70); btnUtilTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btnItensTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45); btnItensTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btnPlayersTab.BackgroundColor3 = Color3.fromRGB(35, 35, 45); btnPlayersTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+end)
+
+-- SISTEMA ANTI-TEIA / ANTI-STUN (Aba Util)
+local antiTeiaAtivo = false
+local antiTeiaBtn = Instance.new("TextButton")
+antiTeiaBtn.Size = UDim2.new(1, 0, 0, 35)
+antiTeiaBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
+antiTeiaBtn.Text = "Anti-Teia (Paralisia): DESLIGADO"
+antiTeiaBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+antiTeiaBtn.Font = Enum.Font.SourceSansBold
+antiTeiaBtn.TextSize = 12
+antiTeiaBtn.Parent = frameUtil
+local cUt1 = Instance.new("UICorner"); cUt1.CornerRadius = UDim.new(0, 5); cUt1.Parent = antiTeiaBtn
+
+antiTeiaBtn.MouseButton1Click:Connect(function()
+    antiTeiaAtivo = not antiTeiaAtivo
+    if antiTeiaAtivo then
+        antiTeiaBtn.BackgroundColor3 = Color3.fromRGB(30, 120, 30)
+        antiTeiaBtn.Text = "Anti-Teia (Paralisia): LIGADO"
+    else
+        antiTeiaBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
+        antiTeiaBtn.Text = "Anti-Teia (Paralisia): DESLIGADO"
+    end
+end)
+
+-- Loop que remove qualquer lentidão, travamento ou paralisia da teia continuamente
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if antiTeiaAtivo then
+            pcall(function()
+                local char = localPlayer.Character
+                if char then
+                    local humanoid = char:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        -- Força a velocidade normal caso a teia tente abaixar
+                        if humanoid.WalkSpeed < 16 then
+                            humanoid.WalkSpeed = 16
+                        end
+                    end
+                    -- Remove efeitos e pastas de slow/stun aplicadas pelo mapa ou pela aranha
+                    for _, child in ipairs(char:GetChildren()) do
+                        if child:IsA("Folder") or child:IsA("StringValue") or child:IsA("BoolValue") then
+                            local nome = child.Name:lower()
+                            if nome:find("stun") or nome:find("slow") or nome:find("web") or nome:find("teia") or nome:find("paralis") then
+                                child:Destroy()
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Lógica para acionar ClickDetector / Mãozinha
+local function dispararCliqueItem(item)
+    local cd = item:FindFirstChildWhichIsA("ClickDetector", true)
+    if not cd and item.Parent then
+        cd = item.Parent:FindFirstChildWhichIsA("ClickDetector", true)
+    end
+    if cd and fireclickdetector then
+        fireclickdetector(cd)
+    end
+
+    local pGui = localPlayer:FindFirstChild("PlayerGui")
+    if pGui then
+        for _, gui in ipairs(pGui:GetChildren()) do
+            if gui:IsA("ScreenGui") and gui.Enabled then
+                for _, btn in ipairs(gui:GetDescendants()) do
+                    if btn:IsA("ImageButton") or btn:IsA("TextButton") then
+                        if btn.Name:lower():find("touch") or btn.Name:lower():find("hand") or btn.Name:lower():find("interact") or btn.Name:lower():find("grab") then
+                            pcall(function() firesignal(btn.MouseButton1Click); firesignal(btn.Activated) end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Função para Pegar Item
+local function pegarItemSpider(nomeItem)
+    local char = localPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+    local hrp = char.HumanoidRootPart
+    local posicaoOriginal = hrp.CFrame
+
+    local itemAlvo = nil
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj.Name:lower():find(nomeItem:lower():gsub("%s+", "")) or obj.Name:lower():find(nomeItem:lower()) then
+            if obj:IsA("Tool") or obj:IsA("Model") or obj:IsA("BasePart") then
+                itemAlvo = obj
+                break
+            end
+        end
+    end
+
+    if itemAlvo then
+        local posItem = itemAlvo:IsA("BasePart") and itemAlvo.CFrame or (itemAlvo:FindFirstChildWhichIsA("BasePart") and itemAlvo:FindFirstChildWhichIsA("BasePart").CFrame)
+        if posItem then
+            hrp.CFrame = posItem + Vector3.new(0, 0.5, 0)
+            task.wait(0.2)
+            dispararCliqueItem(itemAlvo)
+            
+            local prompt = itemAlvo:FindFirstChildWhichIsA("ProximityPrompt", true) or (itemAlvo.Parent and itemAlvo.Parent:FindFirstChildWhichIsA("ProximityPrompt", true))
+            if prompt and fireproximityprompt then
+                fireproximityprompt(prompt)
+            end
+
+            task.wait(0.3)
+            hrp.CFrame = posicaoOriginal
+        end
+    end
+end
+
+-- Gera botões de itens
+for _, nomeItem in ipairs(itensLista) do
+    local itemBtn = Instance.new("TextButton")
+    itemBtn.Size = UDim2.new(1, -10, 0, 30)
+    itemBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    itemBtn.Text = nomeItem
+    itemBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    itemBtn.Font = Enum.Font.SourceSans
+    itemBtn.TextSize = 13
+    itemBtn.Parent = scrollItens
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 5)
+    btnCorner.Parent = itemBtn
+
+    itemBtn.MouseButton1Click:Connect(function() pegarItemSpider(nomeItem) end)
+end
+
+-- Lista de Jogadores
+local function atualizarListaJogadores()
+    for _, child in ipairs(scrollPlayers:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    local lista = Players:GetPlayers()
+    scrollPlayers.CanvasSize = UDim2.new(0, 0, 0, (#lista - 1) * 35)
+
+    for _, p in ipairs(lista) do
+        if p ~= localPlayer then
+            local pBtn = Instance.new("TextButton")
+            pBtn.Size = UDim2.new(1, -10, 0, 30)
+            pBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+            pBtn.Text = p.DisplayName .. " (@" .. p.Name .. ")"
+            pBtn.TextColor3 = Color3.fromRGB(255, 220, 220)
+            pBtn.Font = Enum.Font.SourceSansBold
+            pBtn.TextSize = 12
+            pBtn.Parent = scrollPlayers
+
+            local pCorner = Instance.new("UICorner")
+            pCorner.CornerRadius = UDim.new(0, 5)
+            pCorner.Parent = pBtn
+
+            pBtn.MouseButton1Click:Connect(function()
+                local myChar = localPlayer.Character
+                local targetChar = p.Character
+                if myChar and targetChar and myChar:FindFirstChild("HumanoidRootPart") and targetChar:FindFirstChild("HumanoidRootPart") then
+                    myChar.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0)
+                end
+            end)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(atualizarListaJogadores)
+Players.PlayerRemoving:Connect(atualizarListaJogadores)
+btnPlayersTab.MouseButton1Click:Connect(atualizarListaJogadores)
